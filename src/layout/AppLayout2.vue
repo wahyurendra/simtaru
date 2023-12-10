@@ -2,7 +2,7 @@
 import { computed, watch, ref } from 'vue';
 import AppTopbar from './AppTopbar.vue';
 import AppFooter from './AppFooter.vue';
-import AppSidebar from './AppSidebar.vue';
+// import AppSidebar from './AppSidebar.vue';
 import AppConfig from './AppConfig.vue';
 import { useLayout } from '@/layout/composables/layout';
 import Empty from '../views/pages/Empty/Empty.vue';
@@ -63,14 +63,14 @@ const toggleJalan=ref()
 const togglePelabuhan=ref()
 const togglePolygon=ref()
 const toggleWaisai=ref()
-const toggleKantorPemerintah=ref()
-const toggleTempatPendidikan=ref()
-
+const isLogin=ref(false)
 </script>
 
 <template>
     <div class="layout-wrapper" :class="containerClass">
-        <app-topbar></app-topbar>
+        <app-topbar
+            @is-login="(login)=>{isLogin=login}"
+        ></app-topbar>
         <div class="layout-sidebar">
             <app-sidebar 
                 @open-menu1="(Menu1)=>openMenu1=Menu1" 
@@ -78,9 +78,6 @@ const toggleTempatPendidikan=ref()
                 @toggle-pelabuhan="(res)=>togglePelabuhan=res"
                 @toggle-polygon="(res)=>togglePolygon=res"
                 @toggle-waisai="(res)=>toggleWaisai=res"
-                @toggle-kantor-pemerintah="(res)=>toggleKantorPemerintah=res"
-                @toggle-tempat-pendidikan="(res)=>toggleTempatPendidikan=res"
-
                 >
             </app-sidebar>
         </div>
@@ -93,8 +90,7 @@ const toggleTempatPendidikan=ref()
                     :togglePelabuhan="togglePelabuhan"
                     :togglePolygon="togglePolygon"
                     :toggleWaisai="toggleWaisai"
-                    :toggleKantorPemerintah="toggleKantorPemerintah"
-                    :toggleTempatPendidikan="toggleTempatPendidikan"
+                    :isLogin="isLogin"
                     @close-menu1="(menu1Open)=>openMenu1=menu1Open"></empty>
             
             <app-footer></app-footer>
@@ -105,7 +101,8 @@ const toggleTempatPendidikan=ref()
 </template>
 
 <style lang="scss" scoped>
-.layout-main-container{
-    background-color: #ffa701 !important;
+
+.layout-main-container {
+    background-color: #fff !important;
 }
 </style>

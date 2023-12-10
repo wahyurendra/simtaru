@@ -4,24 +4,11 @@ import { ref, onMounted } from 'vue';
 // import AppMenuItem from './AppMenuItem.vue';
 
 
-const emit=defineEmits(['openMenu1','toggleJalan','togglePelabuhan','togglePolygon','toggleWaisai','toggleKantorPemerintah', 'toggleTempatPendidikan', 'toggleBandara', 'toggleHutan', 'toggleKesehatan', 'togglePekarangan', 'togglePelabuhan', 'togglePemukiman', 'toggleSungai', 'toggleTambang', 'toggleTPA', 'toggleLapangan'])
+const emit=defineEmits(['openMenu1','toggleJalan','togglePelabuhan','togglePolygon','toggleWaisai'])
 const tampilkanJalanWaisai=ref(false)
 const tampilkanPelabuhan=ref(false)
 const tampilkanPolygon=ref(false)
 const tampilkanWaisai=ref(false)
-const tampilkanKantorPemerintah=ref(false)
-const tampilkanTempatPendidikan=ref(false)
-const tampilkanBandara=ref(false)
-const tampilkanHutan=ref(false)
-const tampilkanKesehatan=ref(false)
-const tampilkanPekarangan=ref(false)
-const tampilkanPelabuhan=ref(false)
-const tampilkanPemukiman=ref(false)
-const tampilkanSungai=ref(false)
-const tampilkanTambang=ref(false)
-const tampilkanTpa=ref(false)
-const tampilkanLapangan=ref(false)
-
 
 function openMenu1() {
     emit('openMenu1',true)
@@ -45,16 +32,6 @@ function togglePolygon() {
 function toggleWaisai() {
     tampilkanWaisai.value=!tampilkanWaisai.value
     emit('toggleWaisai', tampilkanWaisai.value)
-}
-
-function toggleKantorPemerintah() {
-    tampilkanKantorPemerintah.value=!tampilkanKantorPemerintah.value
-    emit('toggleKantorPemerintah', tampilkanKantorPemerintah.value)
-}
-
-function toggleTempatPendidikan() {
-    tampilkanTempatPendidikan.value=!tampilkanTempatPendidikan.value
-    emit('toggleTempatPendidikan', tampilkanTempatPendidikan.value)
 }
 
 // import { library } from '@fortawesome/fontawesome-free'
@@ -110,7 +87,6 @@ onMounted(() => {
                         </span>
                     </a>
                 </li>
-                
             </ul>
         </li>
         <li class="layout-root-menuitem">
@@ -146,40 +122,32 @@ onMounted(() => {
                         </span>
                     </a>
                 </li>
+                <li>
+                    <a @click="openMenu1()" tabindex="0">
+                        <font-awesome-icon icon="fa fa-road" class="layout-menuitem-icon" />
+                        <span class="layout-menuitem-text">
+                            Jalan Lukas Dailon
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a tabindex="0">
+                        <font-awesome-icon icon="fa fa-road" class="layout-menuitem-icon" />
+                        <span class="layout-menuitem-text">
+                            Jalan Waisai Warsamdin
+                        </span>
+                    </a>
+                </li>
             </ul>
         </li>
         <li class="layout-root-menuitem">
-            <div class="layout-menuitem-root-text">Lainnya</div>
+            <div class="layout-menuitem-root-text"> Rumah Sakit</div>
             <ul class="layout-submenu">
                 <li>
                     <a tabindex="0">
                         <font-awesome-icon icon="fa fa-hospital" class="layout-menuitem-icon" />
                         <span class="layout-menuitem-text">
                             Jalan Waisai Warsamdin
-                        </span>
-                    </a>
-                </li>
-                <li @click="togglePolygon()">
-                    <a tabindex="0">
-                        <font-awesome-icon icon="fa fa-hospital" class="layout-menuitem-icon" />
-                        <span class="layout-menuitem-text">
-                            Tempat Ibadah
-                        </span>
-                    </a>
-                </li>
-                <li @click="toggleKantorPemerintah()">
-                    <a tabindex="0">
-                        <font-awesome-icon icon="fa fa-hospital" class="layout-menuitem-icon" />
-                        <span class="layout-menuitem-text">
-                            Kantor Pemerintah
-                        </span>
-                    </a>
-                </li>
-                <li @click="toggleTempatPendidikan()">
-                    <a tabindex="0">
-                        <font-awesome-icon icon="fa fa-hospital" class="layout-menuitem-icon" />
-                        <span class="layout-menuitem-text">
-                            Tempat Pendidikan
                         </span>
                     </a>
                 </li>
