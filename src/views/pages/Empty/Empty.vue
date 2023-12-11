@@ -7,16 +7,16 @@
         <div id="calculated-area"></div>
     </div> -->
       <Button @click="toggle"  text size="small"><span class="layer" v-b-tooltip.hover title="Layer"></span></Button>
-      <Button @click="toggle1" text size="small"><span class="raster" v-b-tooltip.hover title="Raster"></span></Button>
+      <Button @click="toggle1" text size="small"><span class="raster" v-b-tooltip.hover title="Citra Ortofoto"></span></Button>
       <Button @click="toggle2" text size="small"><span class="ruler" v-b-tooltip.hover title="Pengukuran"></span></Button>
       <Button @click="toggle3" text size="small"><span class="mapstyle" v-b-tooltip.hover title="Jenis Maps"></span></Button>
-      <Button @click="toggle4" text size="small"><span class="pin" v-b-tooltip.hover title="Fasilitas Umum"></span></Button>  
+      <Button @click="toggle4" text size="small"><span class="search" v-b-tooltip.hover title="Fasilitas Umum"></span></Button>  
       <input @change="handleImage" id="fileUpload" type="file" hidden>
       <!-- <input id="fileUpload" type="file" hidden> -->
       <Toast/>
       <!-- <Button @click="chooseFiles()" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>   -->
       <Button @click="visible = true" v-if="isLogin" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>  
-            
+      <Button @click="visible2 = true" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>              
       <Dialog v-model:visible="visible" modal header="Upload SHP" :style="{ width: '40rem' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
         <h6>Pilih Batas Wilayah</h6>
         <div class="card flex justify-content-center">
@@ -31,6 +31,58 @@
         </div>
         <div class="flex justify-content-center">
           <Button @click="submitFile()" label="Upload" icon="pi pi-upload" />
+        </div>
+      </Dialog>
+      <Dialog v-model:visible="visible2" modal header="Upload Data" :style="{ width: '40rem' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
+        <h6>Jenis File</h6>
+        <div class="grid p-fluid">
+          <div class="col-12">
+            <Dropdown v-model="selectedJenis" :options="jenis" optionLabel="name" placeholder="Pilih Jenis" class="w-full" />
+          </div>
+          <template v-if="selectedJenis.data==1">
+            <div class="col-12">
+              <span class="p-float-label">
+                <Dropdown v-model="selectedWilayah" :options="wilayah" optionLabel="name" placeholder="Pilih Wilayah" class="w-full" />
+                <label for="wilayah">Wilayah</label>
+              </span>
+            </div>
+            <div class="col-12">
+              <span class="p-float-label">
+                <Dropdown v-model="selectedSubwilayah" :options="subwilayah" optionLabel="name" placeholder="Pilih Wilayah" class="w-full" />
+                <label for="wilayah">Sub Wilayah</label>
+              </span>
+            </div>
+            <div class="col-12">
+              <h6>File SHP Layer (format Zip)</h6>
+              <FileUpload 
+                mode="basic" 
+                accept="application/x-zip-compressed" 
+                :maxFileSize="1000000000" 
+                @select="onFileSelect"
+                />
+            </div>
+          </template>
+
+          <template v-else-if="selectedJenis.data==2">
+            <div class="col-12">
+              <h6>File Citra Ortofoto (format .mbtiles)</h6>
+              <FileUpload mode="basic" accept=".mbtiles" @select="onFileSelect" :maxFileSize="10000000000" />
+            </div>
+          </template>
+          
+          <template v-else-if="selectedJenis.data==3">
+            <div class="col-12">
+              <span class="p-float-label">
+                <Dropdown v-model="selectedKategori" :options="kategori" optionLabel="name" placeholder="Pilih Kategori" class="w-full" />
+                <label for="kategori">Kategori</label>
+              </span>
+            </div>
+            <div class="col-12">
+              <h6>File SHP Fasilitas Umum (format Zip)</h6>
+              <FileUpload mode="basic" @select="onFileSelect" accept=".zip" :maxFileSize="1000000000" />
+            </div>
+          </template>
+          
         </div>
       </Dialog>
 
@@ -73,6 +125,7 @@
           v-model:selectionKeys="selectedKey2" 
           :value="menustyle" 
           selectionMode="single" 
+          :metaKeySelection="true"
           class="w-full md:w-30rem"
           @nodeSelect="setStyleMap"
           @nodeUnselect="removeFotoUdara"
@@ -133,7 +186,7 @@
         nodesFasilitas:null,
         selectedKey: null,
         selectedKey1: null,
-        selectedKey2: null,
+        selectedKey2: {"label": "Outdoors", "data": "outdoors-v12", "key": "0-2",},
         selectedKey3: null,
         isMeasureDistance:false,
         koordinatPengukuranLuas:null,
@@ -145,6 +198,7 @@
         file: '',
         batas: '',
         visible: false,
+        visible2: false,
         selectedCity: null,
         cities: [
             { name: 'Kelurahan Warmasen', code: 'NY' },
@@ -153,8 +207,31 @@
             { name: 'Kelurahan Bonkawir', code: 'IST' },
             { name: 'Kelurahan Waisai Kota', code: 'PRS' },
             { name: 'Batas Wilayah', code: 'PRS' }
-
-        ]
+        ],
+        selectedJenis:{},
+        jenis:[
+            { name: 'SHP', data: 1 },
+            { name: 'Citra Ortofoto', data: 2 },
+            { name: 'Fasilitas Umum', data: 3 },
+        ],
+        selectedWilayah:{},
+        wilayah:[
+          { name:'Kelurahan Warmasen', data: "warmasem"},
+          { name:'Kelurahan Saporkren', data: "saporkren"}
+        ],
+        selectedSubwilayah:{},
+        subwilayah:[
+          { name:'APL', data: "apl"},
+          { name:'NON APL', data: "nonapl"},
+          { name:'Tutupan Lahan', data: "tutupanlahan"}
+        ],
+        selectedKategori:{},
+        kategori:[
+          { name:'Sekolah', data: "sekolah"},
+          { name:'Rumah Sakit', data: "rs"},
+          { name:'Tempat Ibadah', data: "ibadah"}
+        ],
+        selectedFile:null
       };
     },
     emits: ['closeMenu1'],
@@ -185,7 +262,7 @@
       this.mapku = new mapboxgl.Map({
         container: 'map',
         // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
-        style: 'mapbox://styles/mapbox/streets-v12',
+        style: 'mapbox://styles/mapbox/outdoors-v12',
         center: [130.814963, -0.423930],
         zoom: 15,
         maxZoom: 21,
@@ -196,13 +273,10 @@
         this.draw = new MapboxDraw({
             displayControlsDefault: false,
         });
-        this.mapku.addControl(this.draw);
-        this.mapku.on('click', this.handleMouseClick);
-        this.mapku.on('dblclick', this.handleMouseClick);
-        this.mapku.on('mousemove', this.handleMouseMove);
-        
-        
 
+        
+        
+        
         
         // measure distace
         this.distanceContainer = document.getElementById('distance');
@@ -293,9 +367,18 @@
         this.mapku.addControl(new mapboxgl.FullscreenControl());
     },
     methods: {
+      onFileSelect(e){
+        console.log(e)
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.selectedFile = e.target.result;
+            console.log(this.selectedFile)
+        };
+        reader.readAsDataURL(e.files[0]);
+      },
       showSuccess() {
-            this.$toast.add({ severity: 'success', summary: 'Success Upload', detail: 'Upload SHP Berhasil!', life: 3000 });
-        },
+        this.$toast.add({ severity: 'success', summary: 'Success Upload', detail: 'Upload SHP Berhasil!', life: 3000 });
+      },
       submitFile(){
         this.createBase64Image(this.file)
       },
@@ -452,7 +535,22 @@
       },
       buttonDrawPolygon(){
         this.isDrawArea=!this.isDrawArea
-        this.isDrawArea?this.enableDrawPolygon():this.deleteDrawnItems()
+        if(this.isDrawArea){
+          this.mapku.addControl(this.draw);
+          this.mapku.on('click', this.handleMouseClick);
+          this.mapku.on('dblclick', this.handleMouseClick);
+          this.mapku.on('mousemove', this.handleMouseMove);
+          this.enableDrawPolygon()
+          
+        }
+        else{
+          this.deleteDrawnItems()
+          this.mapku.removeControl(this.draw);
+          this.mapku.off('click', this.handleMouseClick);
+          this.mapku.off('dblclick', this.handleMouseClick);
+          this.mapku.off('mousemove', this.handleMouseMove);
+        }
+          
       },
       enableDrawPolygon() {
         this.draw.changeMode('draw_polygon');
@@ -550,7 +648,7 @@
                 value.textContent =
                     `Total jarak: ${
                         turf.length(this.linestring).toLocaleString()
-                    }km`;
+                    } km`;
                 this.distanceContainer.appendChild(value);
             }
 
@@ -930,8 +1028,8 @@
       height: 30px;
       width: 30px;
     }
-    span.pin {
-      background: url(/layout/images/pin.svg) no-repeat top left;
+    span.search {
+      background: url(/layout/images/search.svg) no-repeat top left;
       background-size: contain;
       cursor: pointer;
       display: inline-block;

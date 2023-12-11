@@ -20,19 +20,19 @@ export const mapstylemapbox = [
         "data": "satellite-streets-v12",
         "key": "0-0",
     },
-    {
-        "label": "Streets",
-        "data": "streets-v12",
-        "key": "0-1",
-    },
-    {
-        "label": "Light",
-        "data": "light-v11",
-        "key": "0-2",
-    },
+    // {
+    //     "label": "Streets",
+    //     "data": "streets-v12",
+    //     "key": "0-1",
+    // },
+    // {
+    //     "label": "Light",
+    //     "data": "light-v11",
+    //     "key": "0-2",
+    // },
     {
         "label": "Outdoors",
         "data": "outdoors-v12",
-        "key": "0-4",
+        "key": "0-2",
     }
 ]
