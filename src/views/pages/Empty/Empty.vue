@@ -7,6 +7,7 @@
         <div id="calculated-area"></div>
     </div> -->
       <Button @click="toggle"  text size="small"><span class="layer" v-b-tooltip.hover title="Layer"></span></Button>
+      <Button @click="visible3=true" text size="small"><span class="setting" v-b-tooltip.hover title="Layer2"></span></Button>
       <Button @click="toggle1" text size="small"><span class="raster" v-b-tooltip.hover title="Citra Ortofoto"></span></Button>
       <Button @click="toggle2" text size="small"><span class="ruler" v-b-tooltip.hover title="Pengukuran"></span></Button>
       <Button @click="toggle3" text size="small"><span class="mapstyle" v-b-tooltip.hover title="Jenis Maps"></span></Button>
@@ -16,7 +17,7 @@
       <Toast/>
       <!-- <Button @click="chooseFiles()" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>   -->
       <Button @click="visible = true" v-if="isLogin" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>  
-      <Button @click="visible2 = true" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>              
+      <Button @click="visible2 = true" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File1"></span></Button>
       <Dialog v-model:visible="visible" modal header="Upload SHP" :style="{ width: '40rem' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
         <h6>Pilih Batas Wilayah</h6>
         <div class="card flex justify-content-center">
@@ -42,13 +43,13 @@
           <template v-if="selectedJenis.data==1">
             <div class="col-12">
               <span class="p-float-label">
-                <Dropdown v-model="selectedWilayah" :options="wilayah" optionLabel="name" placeholder="Pilih Wilayah" class="w-full" />
+                <Dropdown @change="handleDropdown" v-model="selectedWilayah" :options="nodes" optionLabel="label" placeholder="Pilih Wilayah" class="w-full" />
                 <label for="wilayah">Wilayah</label>
               </span>
             </div>
             <div class="col-12">
               <span class="p-float-label">
-                <Dropdown v-model="selectedSubwilayah" :options="subwilayah" optionLabel="name" placeholder="Pilih Wilayah" class="w-full" />
+                <Dropdown v-if="!(selectedWilayah=={})" @change="handleDropdown1" v-model="selectedSubwilayah" :options="selectedWilayah.children" optionLabel="label" placeholder="Pilih Wilayah" class="w-full" />
                 <label for="wilayah">Sub Wilayah</label>
               </span>
             </div>
@@ -56,17 +57,13 @@
               <h6>File SHP Layer (format Zip)</h6>
               <FileUpload 
                 mode="basic" 
-                accept="application/x-zip-compressed" 
+                accept=".zip" 
                 :maxFileSize="1000000000" 
                 @select="onFileSelect"
-                />
+              />
             </div>
-          </template>
-
-          <template v-else-if="selectedJenis.data==2">
-            <div class="col-12">
-              <h6>File Citra Ortofoto (format .mbtiles)</h6>
-              <FileUpload mode="basic" accept=".mbtiles" @select="onFileSelect" :maxFileSize="10000000000" />
+            <div class="col-3">
+              <Button @click="submitFile()" label="Submit"  />
             </div>
           </template>
           
@@ -85,13 +82,183 @@
           
         </div>
       </Dialog>
+      <Dialog v-model:visible="visible3" modal header="Data Geojson" :style="{ width: '80rem' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
+        <div class="grid p-fluid">
+          <div class="col-12">
+            <div class="card">
+                <TabView>
+                    <TabPanel header="Geojson">
+
+                      <!-- DataTable GrandParent -->
+                      <DataTable v-model:expandedRows="nodesExpandedRows" :value="nodes" tableStyle="min-width: 60rem">
+                        <template #header>
+                            <div class="grid">
+                              <div class="col-3">
+                                <Button type="button" @click="visibleTambahWilayah=true" icon="pi pi-plus" label="Tambah Wilayah" severity="success" />
+                              </div>  
+                            </div>
+                        </template>
+                        <Dialog v-model:visible="visibleTambahWilayah" modal header="Tambah Wilayah Baru" :style="{ width: '40rem' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
+                          <div class="grid p-fluid">
+                            <div class="col-12">
+                              <div class="card">
+                                <span class="p-float-label">
+                                  <InputText v-model="wilayahBaru"></InputText>
+                                  <label for="wilayah">Wilayah</label>
+                                </span>
+                              </div>
+                            </div>
+                            <div class="col-3">
+                              <Button label="Simpan" @click="buttonNewWilayah()" severity="success" rounded />
+                            </div>
+                          </div>
+                        </Dialog>
+                        <Column expander style="width: 5rem" />
+                        <Column field="label" header="Nama">
+                          <template #body="slotProps">
+                            <InputText v-model="slotProps.data.label"></InputText>
+                          </template>
+                        </Column>
+                        <Column field="key" header="Urutan">
+                          <template #body="slotProps">
+                            <Button :disabled="slotProps.index === 0" icon="pi pi-arrow-up" @click="swapAtasParent(slotProps)" severity="info" text rounded aria-label="User" />
+                            <Button :disabled="slotProps.index === nodes.length-1" icon="pi pi-arrow-down" @click="swapBawahParent(slotProps)" severity="info" text rounded aria-label="User" />
+                          </template>
+                        </Column>
+                        <Column field="data" header="Action">
+                          <template #body="slotProps">
+                            <Button icon="pi pi-trash" @click="hapusGrandParent(slotProps)" severity="danger" text raised rounded aria-label="Cancel" />
+                          </template>
+                        </Column>
+                          
+                        
+                        <template #expansion="slotPropsParent">
+                          <!-- Datatable Parent -->
+                          <DataTable v-model:expandedRows="nodesExpandedRows2" :value="slotPropsParent.data.children">
+                            <Column expander style="width: 5rem" />
+                            <!-- <Column field="data" header="ID"></Column> -->
+                            <Column field="label" header="Nama">
+                            </Column>
+                            <Column field="key" header="Urutan">
+                              <template #body="slotProps">
+                                <Button :disabled="slotProps.index === 0" icon="pi pi-arrow-up" @click="swapAtas(slotPropsParent,slotProps)" severity="info" text rounded aria-label="User" />
+                                <Button :disabled="slotProps.index === slotPropsParent.data.children.length-1" icon="pi pi-arrow-down" @click="swapBawah(slotPropsParent,slotProps)" severity="info" text rounded aria-label="User" />
+                              </template>
+                            </Column>
+                            <template #expansion="slotProps">
+
+                              <!-- Datatable Child -->
+                              <DataTable  :value="slotProps.data.children">
+                                <Column field="label" header="Nama">
+                                  <template #body="slotProps">
+                                    <InputText v-model="slotProps.data.label"></InputText>
+                                  </template>  
+                                </Column>
+                                <Column field="jenis" header="Jenis">
+                                  <template #body="slotProps">
+                                    {{ slotProps.data.jenis }}
+                                    <Dropdown :style="{ width: '120px' }" @change="slotProps.data.jenis=slotProps.data.jenis.data" v-model="slotProps.data.jenis" :options="jenisGeojson" optionLabel="name" placeholder="Pilih Jenis Geojson" />
+                                  </template>
+                                </Column>
+                                <Column field="warna" header="Warna">
+                                  <template #body="slotProps">
+                                    {{ slotProps.data.warna }} 
+                                    <ColorPicker :style="{ width: '30px', height: '30px' }" @change="slotProps.data.warna=`#${slotProps.data.warna}`" v-model="slotProps.data.warna" />
+                                  </template>
+                                </Column>
+                                <Column field="key" header="Urutan">
+                                  <template #body="slotPropsChild">
+                                    <Button :disabled="slotPropsChild.index === 0" icon="pi pi-arrow-up" @click="swapAtasChild(slotPropsParent,slotProps,slotPropsChild)" severity="info" text rounded aria-label="User" />
+                                    <Button :disabled="slotPropsChild.index === slotProps.data.children.length - 1" icon="pi pi-arrow-down" @click="swapBawahChild(slotPropsParent,slotProps,slotPropsChild)" severity="info" text rounded aria-label="User" />
+                                  </template>
+                                </Column>
+                                <Column field="data" header="Action">
+                                  <template #body="slotPropsChild">
+                                    <Button icon="pi pi-trash" @click="hapusChild(slotPropsParent,slotProps,slotPropsChild)" severity="danger" text raised rounded aria-label="Cancel" />
+                                  </template>
+                                </Column>
+                              </DataTable>
+                            </Template>    
+                          </DataTable>
+                        </Template>
+                        <template #footer> 
+                            <Button icon="pi pi-save" label="Save" style="width: 12.5%" raised />
+                            <Button @click="initData()" icon="pi pi-refresh" label="Reset" style="width: 12.5%" severity="secondary" raised />
+                        </template>
+                      </DataTable>
+                    </TabPanel>
+                    <TabPanel header="Citra Ortofoto">
+                      <DataTable :value="nodesUdara" tableStyle="min-width: 60rem">
+                        <Column field="label" header="Nama">
+                          <template #body="slotProps">
+                            
+                            <InputText v-model="slotProps.data.label"></InputText>
+                          </template>
+                        </Column>
+                        <Column field="key" header="Urutan">
+                          <template #body="slotProps">
+                            <Button :disabled="slotProps.index === 0" icon="pi pi-arrow-up" @click="swapAtasUdara(slotProps)" severity="info" text rounded aria-label="User" />
+                            <Button :disabled="slotProps.index === nodesUdara.length-1" icon="pi pi-arrow-down" @click="swapBawahUdara(slotProps)" severity="info" text rounded aria-label="User" />
+                          </template>
+                        </Column>
+                        <Column field="data" header="Action">
+                          <template #body="slotProps">
+                            <Button icon="pi pi-trash" severity="danger" text raised rounded aria-label="Cancel" />
+                          </template>
+                        </Column>
+                      </DataTable>
+                    </TabPanel>
+                    <TabPanel header="Fasilitas Umum">
+                      <DataTable :value="nodesFasilitas" tableStyle="min-width: 60rem">
+                        <Column field="label" header="Nama">
+                          <template #body="slotProps">
+                            
+                            <InputText v-model="slotProps.data.label"></InputText>
+                          </template>
+                        </Column>
+                        <Column field="key" header="Urutan">
+                          <template #body="slotProps">
+                            <Button :disabled="slotProps.index === 0" icon="pi pi-arrow-up" @click="swapAtasUdara(slotProps)" severity="info" text rounded aria-label="User" />
+                            <Button :disabled="slotProps.index === nodesUdara.length-1" icon="pi pi-arrow-down" @click="swapBawahUdara(slotProps)" severity="info" text rounded aria-label="User" />
+                          </template>
+                        </Column>
+                        <Column field="data" header="Action">
+                          <template #body="slotProps">
+                            <Button icon="pi pi-trash" severity="danger" text raised rounded aria-label="Cancel" />
+                          </template>
+                        </Column>
+                      </DataTable>
+                    </TabPanel>
+                </TabView>
+            </div>
+            
+          </div>
+        </div>
+      </Dialog>
 
 
 
       <!-- <input @change="handleImage" type="file" accept="image/*" class="custom-input"> -->
       <!-- <Button @click="toggle5" text size="small"><span class="upload" v-b-tooltip.hover title="Upload"></span></Button> -->
       
+      <OverlayPanel ref="opp" appendTo="body" :showCloseIcon="false">
+        <Tree 
+          v-model:selectionKeys="selectedKey" 
+          :value="nodes" 
+          selectionMode="checkbox" 
+          class="w-full md:w-30rem"
+          @nodeSelect="onNodeSelect"
+          @nodeUnselect="onNodeUnselect"
+          >
+          <template #default="slotProps">
+                {{ slotProps.node.label }}
+                <Button @click="toggle4" text size="small"><span class="coba" v-b-tooltip.hover title="Fasilitas Umum"></span></Button>  
 
+            </template>
+            
+          </Tree>
+          
+      </OverlayPanel>
    
       <OverlayPanel ref="op" appendTo="body" :showCloseIcon="false">
         <Tree 
@@ -102,6 +269,7 @@
           @nodeSelect="onNodeSelect"
           @nodeUnselect="onNodeUnselect"
           />
+          
       </OverlayPanel>
       <OverlayPanel ref="op1" appendTo="body" :showCloseIcon="false">
         <Tree 
@@ -178,6 +346,8 @@
   export default {
     data() {
       return {
+        nodesExpandedRows:null,
+        nodesExpandedRows2:null,
         map: null,
         mapku:null,
         marker:{},
@@ -194,11 +364,15 @@
         popUpFasilitas:{},
         menuraster:null,
         menustyle:null,
+        wilayahBaru: '',
         image: '',
         file: '',
         batas: '',
+        batas1: '',
         visible: false,
         visible2: false,
+        visible3: false,
+        visibleTambahWilayah: false,
         selectedCity: null,
         cities: [
             { name: 'Kelurahan Warmasen', code: 'NY' },
@@ -211,7 +385,6 @@
         selectedJenis:{},
         jenis:[
             { name: 'SHP', data: 1 },
-            { name: 'Citra Ortofoto', data: 2 },
             { name: 'Fasilitas Umum', data: 3 },
         ],
         selectedWilayah:{},
@@ -231,7 +404,12 @@
           { name:'Rumah Sakit', data: "rs"},
           { name:'Tempat Ibadah', data: "ibadah"}
         ],
-        selectedFile:null
+        selectedFile:null,
+        selectedJenisGeojson:{},
+        jenisGeojson:[
+        { name:'Fill', data:'fill'},
+        { name:'Lines', data:'line'},
+        ]
       };
     },
     emits: ['closeMenu1'],
@@ -249,15 +427,7 @@
     mounted(){
       this.menuraster = menuraster;
       this.menustyle = mapstylemapbox;
-      this.getTreeNodes().then((data)=>{
-        this.nodes = data
-      })
-      this.getTreeNodesUdara().then((data)=>{
-        this.nodesUdara = data
-      })
-      this.getTreeNodesFasilitas().then((data)=>{
-        this.nodesFasilitas = data
-      })
+      this.initData()
       mapboxgl.accessToken = 'pk.eyJ1IjoieGljZXc2OTU4MSIsImEiOiJjbG1qemprNW8wNzg0MnNxcXUxeXBvbTBpIn0.JTqLlI9LIoLKEGkoxBbiyg';
       this.mapku = new mapboxgl.Map({
         container: 'map',
@@ -343,16 +513,16 @@
         };
         
         // Add the control to the map.
-        this.mapku.addControl(
-          new MapboxGeocoder({
-          accessToken: mapboxgl.accessToken,
-          localGeocoder: this.coordinatesGeocoder,
-          zoom: 4,
-          placeholder: 'Pencarian',
-          mapboxgl: mapboxgl,
-          reverseGeocode: true
-          })
-        );
+        // this.mapku.addControl(
+        //   new MapboxGeocoder({
+        //   accessToken: mapboxgl.accessToken,
+        //   localGeocoder: this.coordinatesGeocoder,
+        //   zoom: 4,
+        //   placeholder: 'Pencarian',
+        //   mapboxgl: mapboxgl,
+        //   reverseGeocode: true
+        //   })
+        // );
         // 
         this.mapku.addControl(new mapboxgl.ScaleControl());
         this.mapku.on('mousemove', (e) => {
@@ -367,12 +537,151 @@
         this.mapku.addControl(new mapboxgl.FullscreenControl());
     },
     methods: {
+      buttonNewWilayah(){
+        var wilayahBaru={wilayah_baru:this.wilayahBaru}
+        axios.post("https://apigeojson.kartabhumi.co.id/api/wilayah", {})
+        .then((response) =>{
+          this.showSuccess();
+          this.initData();
+        })
+        .catch((err) =>{
+          return new Error(err.message);
+        })
+      },
+      hapusGrandParent(slotProps){
+        this.nodes.splice(slotProps.index,1)
+      },
+      hapusParent(slotPropsParent,slotProps){
+        this.nodes[slotPropsParent.index].children.splice(slotProps.index,1)
+      },
+      hapusChild(slotPropsParent,slotProps, slotPropsChild){
+        this.nodes[slotPropsParent.index].children[slotProps.index].children.splice(slotPropsChild.index,1)
+      },
+      initData(){
+        this.getTreeNodes().then((data)=>{
+          this.nodes = data
+        })
+        this.getTreeNodesUdara().then((data)=>{
+          this.nodesUdara = data
+        })
+        this.getTreeNodesFasilitas().then((data)=>{
+          this.nodesFasilitas = data
+        })
+      },
+      swapAtasUdara(slotPropsParent){
+        const urutanGrandParent=slotPropsParent.index
+        //change the key only
+        const tempKey=this.nodesUdara[urutanGrandParent].key
+        this.nodesUdara[urutanGrandParent].key=this.nodesUdara[urutanGrandParent-1].key
+        this.nodesUdara[urutanGrandParent-1].key=tempKey
+        //change the table
+        const tempData=this.nodesUdara[urutanGrandParent]
+        this.nodesUdara[urutanGrandParent]=this.nodesUdara[urutanGrandParent-1]
+        this.nodesUdara[urutanGrandParent-1]=tempData
+      },
+      swapBawahUdara(slotPropsParent){
+        const urutanGrandParent=slotPropsParent.index
+        //change the key only
+        const tempKey=this.nodesUdara[urutanGrandParent].key
+        this.nodesUdara[urutanGrandParent].key=this.nodesUdara[urutanGrandParent+1].key
+        this.nodesUdara[urutanGrandParent+1].key=tempKey
+        //change the table
+        const tempData=this.nodesUdara[urutanGrandParent]
+        this.nodesUdara[urutanGrandParent]=this.nodesUdara[urutanGrandParent+1]
+        this.nodesUdara[urutanGrandParent+1]=tempData
+      },
+      swapAtasParent(slotPropsParent){
+        const urutanGrandParent=slotPropsParent.index
+        //change the key only
+        const tempKey=this.nodes[urutanGrandParent].key
+        this.nodes[urutanGrandParent].key=this.nodes[urutanGrandParent-1].key
+        this.nodes[urutanGrandParent-1].key=tempKey
+        //change the table
+        const tempData=this.nodes[urutanGrandParent]
+        this.nodes[urutanGrandParent]=this.nodes[urutanGrandParent-1]
+        this.nodes[urutanGrandParent-1]=tempData
+        
+      },
+      swapBawahParent(slotPropsParent){
+        const urutanGrandParent=slotPropsParent.index
+        //change the key only
+        const tempKey=this.nodes[urutanGrandParent].key
+        this.nodes[urutanGrandParent].key=this.nodes[urutanGrandParent+1].key
+        this.nodes[urutanGrandParent+1].key=tempKey
+        //change the table
+        const tempData=this.nodes[urutanGrandParent]
+        this.nodes[urutanGrandParent]=this.nodes[urutanGrandParent+1]
+        this.nodes[urutanGrandParent+1]=tempData
+        
+      },
+      swapAtas(slotPropsParent,slotProps){
+        
+        const urutanGrandParent=slotPropsParent.index
+        const urutanParent=slotProps.index
+        //change the key only
+        const tempKey=this.nodes[urutanGrandParent].children[urutanParent].key
+        this.nodes[urutanGrandParent].children[urutanParent].key=this.nodes[urutanGrandParent].children[urutanParent-1].key
+        this.nodes[urutanGrandParent].children[urutanParent-1].key=tempKey
+        //change the table
+        const tempData=this.nodes[urutanGrandParent].children[urutanParent]
+        this.nodes[urutanGrandParent].children[urutanParent]=this.nodes[urutanGrandParent].children[urutanParent-1]
+        this.nodes[urutanGrandParent].children[urutanParent-1]=tempData
+        
+      },
+      swapBawah(slotPropsParent,slotProps){
+        
+        const urutanGrandParent=slotPropsParent.index
+        const urutanParent=slotProps.index
+        //change the key only
+        const tempKey=this.nodes[urutanGrandParent].children[urutanParent].key
+        this.nodes[urutanGrandParent].children[urutanParent].key=this.nodes[urutanGrandParent].children[urutanParent+1].key
+        this.nodes[urutanGrandParent].children[urutanParent+1].key=tempKey
+        //change the table
+        const tempData=this.nodes[urutanGrandParent].children[urutanParent]
+        this.nodes[urutanGrandParent].children[urutanParent]=this.nodes[urutanGrandParent].children[urutanParent+1]
+        this.nodes[urutanGrandParent].children[urutanParent+1]=tempData
+        
+      },
+      swapAtasChild(slotPropsParent,slotProps,slotPropsChild){
+        
+        const urutanGrandParent=slotPropsParent.index
+        const urutanParent=slotProps.index
+        const urutanChild=slotPropsChild.index
+        //change the key only
+        const tempKey=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild].key
+        slotPropsChild.data.key=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild-1].key
+        this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild-1].key=tempKey
+        //change the table
+        const tempData=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild]        
+        this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild]=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild-1]
+        this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild-1]=tempData
+        
+      },
+      swapBawahChild(slotPropsParent,slotProps,slotPropsChild){
+        
+        const urutanGrandParent=slotPropsParent.index
+        const urutanParent=slotProps.index
+        const urutanChild=slotPropsChild.index
+        //change the key only
+        const tempKey=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild].key
+        slotPropsChild.data.key=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild+1].key
+        this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild+1].key=tempKey
+        //change the table
+        const tempData=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild]        
+        this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild]=this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild+1]
+        this.nodes[urutanGrandParent].children[urutanParent].children[urutanChild+1]=tempData
+        
+      },
+      expandAllGeojson() {
+            this.nodesExpandedRows = this.products.filter((p) => p.id);
+        },
+        collapseAllGeojson() {
+            this.nodeexpandedRows = null;
+        },
       onFileSelect(e){
-        console.log(e)
         const reader = new FileReader();
         reader.onload = (e) => {
             this.selectedFile = e.target.result;
-            console.log(this.selectedFile)
         };
         reader.readAsDataURL(e.files[0]);
       },
@@ -380,7 +689,8 @@
         this.$toast.add({ severity: 'success', summary: 'Success Upload', detail: 'Upload SHP Berhasil!', life: 3000 });
       },
       submitFile(){
-        this.createBase64Image(this.file)
+        this.uploadImage(this.selectedFile);
+        // this.createBase64Image(this.selectedFile)
       },
       handleImage(e) {
         this.file = e.target.files[0];  
@@ -388,6 +698,10 @@
       handleDropdown(e) {
         // console.log(e.value['name'])
         this.batas = e.value['name'];  
+      },
+      handleDropdown1(e) {
+        // console.log(e.value['name'])
+        this.batas1 = e.value['name'];  
       },
       createBase64Image(fileObject){
         const reader = new FileReader();
@@ -399,10 +713,11 @@
       },
       uploadImage(isi){
         // const {image} = this;
-        axios.post("https://apigeojson.kartabhumi.co.id/api/upload", {file:isi,batas:this.batas})
+        axios.post("https://apigeojson.kartabhumi.co.id/api/upload", {file:isi,batas:this.batas, batas1:this.batas1})
         .then((response) =>{
           this.remoteUrl = response.data.url;
           this.showSuccess();
+          this.initData();
         })
         .catch((err) =>{
           return new Error(err.message);
@@ -719,8 +1034,17 @@
         var terpilih
         if(selected.children){
           selected.children.forEach(element => {
-            this.addGeojson(element)
-            terpilih=element
+            if (element.children) {
+              element.children.forEach(subElement => {
+                this.addGeojson(subElement)
+                terpilih=subElement            
+              });
+            }
+            else{
+              this.addGeojson(element)
+              terpilih=element
+            }
+
           });
         }
         else{
@@ -735,7 +1059,15 @@
       onNodeUnselect(unselected){
         if (unselected.children) {
           unselected.children.forEach(element => {
-            this.removeGeojson(element)
+            
+            if (element.children) {
+              element.children.forEach(subElement => {
+                this.removeGeojson(subElement)
+              });
+            }
+            else{
+              this.removeGeojson(element)
+            }
           });
         }
         else{
@@ -767,6 +1099,9 @@
       toggle(event) {
         this.$refs.op.toggle(event);
       },
+      togglep(event) {
+        this.$refs.opp.toggle(event);
+      },
       toggle1(event) {
         this.$refs.op1.toggle(event);
       },
@@ -785,7 +1120,7 @@
       addGeojson(selected){
         this.mapku.addSource(selected.data, {
             'type': 'geojson',
-            'data': `https://apigeojson.kartabhumi.co.id/api/simtaru/${selected.parent}/${selected.data}`
+            'data': `https://apigeojson.kartabhumi.co.id/api/simtaru/${selected.grandParent}/${selected.parent}/${selected.data}`
           });
           
           var paint={};
@@ -1004,6 +1339,14 @@
       height: 30px;
       width: 30px;
     }
+    span.setting {
+      background: url(/layout/images/setting.svg) no-repeat top left;
+      background-size: contain;
+      cursor: pointer;
+      display: inline-block;
+      height: 30px;
+      width: 30px;
+    }
     span.raster {
       background: url(/layout/images/image.svg) no-repeat top left;
       background-size: contain;
@@ -1043,6 +1386,15 @@
       display: inline-block;
       height: 30px;
       width: 30px;
+    }
+    span.coba {
+      background: url(/layout/images/search.svg) no-repeat top left;
+      background-size: contain;
+      cursor: pointer;
+      display: inline-block;
+      margin: 0px;
+      height: 15px;
+      width: 15px;
     }
     
 </style>
