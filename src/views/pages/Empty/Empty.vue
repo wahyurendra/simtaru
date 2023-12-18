@@ -7,7 +7,7 @@
         <div id="calculated-area"></div>
     </div> -->
       <Button @click="toggle"  text size="small"><span class="layer" v-b-tooltip.hover title="Layer"></span></Button>
-      <Button @click="visible3=true" text size="small"><span class="setting" v-b-tooltip.hover title="Layer2"></span></Button>
+      <Button @click="visible3=true" v-if="isLogin" text size="small"><span class="setting" v-b-tooltip.hover title="Settings"></span></Button>
       <Button @click="toggle1" text size="small"><span class="raster" v-b-tooltip.hover title="Citra Ortofoto"></span></Button>
       <Button @click="toggle2" text size="small"><span class="ruler" v-b-tooltip.hover title="Pengukuran"></span></Button>
       <Button @click="toggle3" text size="small"><span class="mapstyle" v-b-tooltip.hover title="Jenis Maps"></span></Button>
@@ -16,8 +16,8 @@
       <!-- <input id="fileUpload" type="file" hidden> -->
       <Toast/>
       <!-- <Button @click="chooseFiles()" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>   -->
-      <Button @click="visible = true" v-if="isLogin" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>  
-      <Button @click="visible2 = true" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File1"></span></Button>
+      <!-- <Button @click="visible = true" v-if="isLogin" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File"></span></Button>   -->
+      <Button @click="visible2 = true" v-if="isLogin" text size="small" type="file"><span class="upload" v-b-tooltip.hover title="Upload File1"></span></Button>
       <Dialog v-model:visible="visible" modal header="Upload SHP" :style="{ width: '40rem' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
         <h6>Pilih Batas Wilayah</h6>
         <div class="card flex justify-content-center">
@@ -182,7 +182,7 @@
                           </DataTable>
                         </Template>
                         <template #footer> 
-                            <Button icon="pi pi-save" label="Save" style="width: 12.5%" raised />
+                            <Button @click="console.log(nodes)" icon="pi pi-save" label="Save" style="width: 12.5%" raised />
                             <Button @click="initData()" icon="pi pi-refresh" label="Reset" style="width: 12.5%" severity="secondary" raised />
                         </template>
                       </DataTable>
@@ -538,8 +538,8 @@
     },
     methods: {
       buttonNewWilayah(){
-        var wilayahBaru={wilayah_baru:this.wilayahBaru}
-        axios.post("https://apigeojson.kartabhumi.co.id/api/wilayah", {})
+        var wilayahBaru={nama_wilayah:this.wilayahBaru}
+        axios.post("https://apigeojson.kartabhumi.co.id/api/wilayah", wilayahBaru)
         .then((response) =>{
           this.showSuccess();
           this.initData();
@@ -712,8 +712,7 @@
         reader.readAsDataURL(fileObject);
       },
       uploadImage(isi){
-        // const {image} = this;
-        axios.post("https://apigeojson.kartabhumi.co.id/api/upload", {file:isi,batas:this.batas, batas1:this.batas1})
+        axios.post("https://apigeojson.kartabhumi.co.id/api/upload", {file:isi,batas:this.selectedWilayah['data'], batas1:this.selectedSubwilayah['data']})
         .then((response) =>{
           this.remoteUrl = response.data.url;
           this.showSuccess();
