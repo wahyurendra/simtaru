@@ -182,7 +182,7 @@
                           </DataTable>
                         </Template>
                         <template #footer> 
-                            <Button @click="console.log(nodes)" icon="pi pi-save" label="Save" style="width: 12.5%" raised />
+                            <Button @click="saveGeojson()" icon="pi pi-save" label="Save" style="width: 12.5%" raised />
                             <Button @click="initData()" icon="pi pi-refresh" label="Reset" style="width: 12.5%" severity="secondary" raised />
                         </template>
                       </DataTable>
@@ -342,6 +342,8 @@
   import { mapstylemapbox } from './menuoption';  
   import axios from 'axios';
   import { ref } from "vue";
+  import Swal from 'sweetalert2'
+  import Toast from 'primevue/toast';
 
   export default {
     data() {
@@ -717,6 +719,15 @@
           this.remoteUrl = response.data.url;
           this.showSuccess();
           this.initData();
+        })
+        .catch((err) =>{
+          return new Error(err.message);
+        })
+      },
+      saveGeojson(){
+        axios.post("https://apigeojson.kartabhumi.co.id/api/wilayah", {data:this.nodes})
+        .then((response) =>{
+          this.$toast.add({severity:'success', summary: 'Success Update', detail:'', life: 3000});
         })
         .catch((err) =>{
           return new Error(err.message);
